@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,22 +17,24 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import Share from 'react-native-share';
 import EncryptedStorage from 'react-native-encrypted-storage';
-const {BBMTLibNativeModule} = NativeModules;
+const { BBMTLibNativeModule } = NativeModules;
 import DeviceInfo from 'react-native-device-info';
-
 import {
   dbg,
   HapticFeedback,
   setHapticsEnabled,
   areHapticsEnabled,
 } from '../utils';
-import {useTheme} from '../theme';
-import {WalletService} from '../services/WalletService';
+import { useTheme } from '../theme';
+import { WalletService } from '../services/WalletService';
 import LocalCache from '../services/LocalCache';
 import LegalModal from '../components/LegalModal';
+import { useNavigation } from '@react-navigation/native';
+
 
 interface CollapsibleSectionProps {
   title: string;
@@ -42,6 +44,8 @@ interface CollapsibleSectionProps {
   styles: any;
   theme: any;
 }
+
+const { IconChanger } = NativeModules;  // This is fine here, as it's not a Hook
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   title,
@@ -53,6 +57,13 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 }) => {
   const animatedOpacity = useRef(new Animated.Value(0)).current;
   const animatedRotation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    console.log('NativeModules:', NativeModules);  // Log all loaded modules
+    if (!NativeModules.IconChanger) {
+      console.error('IconChanger is not loaded');
+    }
+  }, []);
 
   useEffect(() => {
     if (isExpanded) {
@@ -97,14 +108,17 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
     onToggle();
   };
 
+  const navigation = useNavigation();
+
   return (
     <View
       style={[
         styles.collapsibleSection,
         ...(isExpanded
-          ? [{borderWidth: 2, borderColor: theme.colors.primary}]
+          ? [{ borderWidth: 2, borderColor: theme.colors.primary }]
           : []),
-      ]}>
+      ]}
+    >
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={handlePress}
@@ -116,7 +130,8 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         }`}
         accessibilityHint={`Double tap to ${
           isExpanded ? 'collapse' : 'expand'
-        } ${title} section`}>
+        } ${title} section`}
+      >
         <View style={styles.sectionHeaderContent}>
           <Image
             source={getSectionIcon(title)}
@@ -128,13 +143,13 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         <Animated.Text
           style={[
             styles.expandIcon,
-            {color: theme.colors.text},
-            {transform: [{rotate: rotateInterpolate}]},
-          ]}>
+            { color: theme.colors.text },
+            { transform: [{ rotate: rotateInterpolate }] },
+          ]}
+        >
           ▶
         </Animated.Text>
       </TouchableOpacity>
-
       {isExpanded && (
         <Animated.View
           style={[
@@ -142,7 +157,8 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             {
               opacity: animatedOpacity,
             },
-          ]}>
+          ]}
+        >
           {children}
         </Animated.View>
       )}
@@ -172,7 +188,8 @@ const getSectionIcon = (title: string): any => {
   }
 };
 
-const WalletSettings: React.FC<{navigation: any}> = ({navigation}) => {
+const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [selectedIcon, setSelectedIcon] = useState('default');  // Moved here!
   const [deleteInput, setDeleteInput] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -190,11 +207,9 @@ const WalletSettings: React.FC<{navigation: any}> = ({navigation}) => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [hapticsEnabled, setHapticsEnabledState] = useState(true);
-
   // Password validation states
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-
   // Collapsible states
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
@@ -206,10 +221,24 @@ const WalletSettings: React.FC<{navigation: any}> = ({navigation}) => {
     advanced: false,
     about: false,
     legal: false,
+    appIcon: false,
+    devicePairing: false,
   });
 
   const {theme, toggleTheme} = useTheme();
   const [appVersion, setAppVersion] = useState('');
+
+    const getSectionIcon = (title: string): any => {
+      switch (title.toLowerCase()) {
+        // ... other cases
+        // +++ ADD THIS CASE +++
+        case 'link to web':
+          return require('../assets/qr-code-icon-settings.png'); // You'll need to add a suitable icon
+        default:
+          return require('../assets/advanced-icon.png');
+      }
+    };
+
 
   // Password validation functions
   const validatePassword = (pass: string) => {
@@ -881,6 +910,25 @@ const WalletSettings: React.FC<{navigation: any}> = ({navigation}) => {
           </View>
         </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Link to Web"
+          isExpanded={expandedSections.devicePairing}
+          onToggle={() => toggleSection('devicePairing')}
+          styles={styles}
+          theme={theme}>
+          <Text style={styles.toggleDescription}>
+            Pair this mobile device with the web application to stream data securely.
+          </Text>
+          <TouchableOpacity
+              style={[styles.button, styles.backupButton]}
+              onPress={() => {
+                console.log('Attempting to navigate to Device Pairing...');
+                navigation.navigate('Device Pairing');
+              }}>
+              <Text style={styles.buttonText}>Open Pairing Screen</Text>
+          </TouchableOpacity>
+        </CollapsibleSection>
+
         {/* Backup & Reset Section */}
         <CollapsibleSection
           title="Backup & Reset"
@@ -977,6 +1025,45 @@ const WalletSettings: React.FC<{navigation: any}> = ({navigation}) => {
               patterns. Self-hosted APIs give you full control over your
               blockchain data access.
             </Text>
+          </View>
+        </CollapsibleSection>
+
+        {/* App Icon Section */}
+
+        <CollapsibleSection
+          title="App Icon"
+          isExpanded={expandedSections.appIcon}
+          onToggle={() => toggleSection('appIcon')}
+          styles={styles}
+          theme={theme}
+        >
+          <Text style={styles.toggleDescription}>
+            Change the app's launcher icon on your device.
+          </Text>
+          <View style={styles.toggleContainer}>
+            <Text style={styles.toggleLabel}>Default Icon</Text>
+            <Switch
+              trackColor={{ true: theme.colors.primary, false: theme.colors.secondary }}
+              thumbColor={theme.colors.accent}
+              onValueChange={async (value) => {
+                HapticFeedback.light();  // If haptics are enabled
+                const newIcon = value ? 'alternative' : 'default';
+                setSelectedIcon(newIcon);
+                if (IconChanger) {
+                  try {
+                    await IconChanger.changeIcon(newIcon);
+                  } catch (error) {
+                    console.error('Error in changeIcon:', error);  // Log the error for debugging
+                    Alert.alert('Error', error.message || 'Failed to change icon. This feature may not be supported.');
+                  }
+                } else {
+                  console.error('IconChanger is null');  // Log this to confirm
+                  Alert.alert('Error', 'IconChanger module is not loaded. Please check your native setup.');
+                }
+              }}
+              value={selectedIcon === 'alternative'}
+            />
+            <Text style={styles.toggleLabel}>Alternative Icon</Text>
           </View>
         </CollapsibleSection>
 
@@ -1286,7 +1373,6 @@ const WalletSettings: React.FC<{navigation: any}> = ({navigation}) => {
           </View>
         </View>
       </Modal>
-
       <LegalModal
         visible={isLegalModalVisible}
         onClose={() => {

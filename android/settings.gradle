@@ -6,6 +6,8 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'BoldWallet'
 
 include ':app'
+include 'IconChangerModule'
+project(':IconChangerModule').projectDir = new File(rootProject.projectDir, '../app/src/main/java/com/boldwallet/')
 includeBuild('../node_modules/@react-native/gradle-plugin')
 
 include ':react-native-gesture-handler'
@@ -29,15 +31,18 @@ project(':react-native-fs').projectDir = new File(
 include ':react-native-biometrics'
 project(':react-native-biometrics').projectDir = new File(
         rootProject.projectDir,
-        '../node_modules/react-native-biometrics/android')
+        '../node_modules/react-native-biometrics/android'
+)
 
 include ':react-native-share'
 project(':react-native-share').projectDir = new File(rootProject.projectDir,
-        '../node_modules/react-native-share/android')
+        '../node_modules/react-native-share/android'
+)
 
 include ':react-native-svg'
 project(':react-native-svg').projectDir = new File(rootProject.projectDir,
-        '../node_modules/react-native-svg/android')
+        '../node_modules/react-native-svg/android'
+)
 
 include ':react-native-document-picker'
 project(':react-native-document-picker').projectDir = new File(

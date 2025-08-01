@@ -55,5 +55,7 @@
 	<string>XFWK</string>
 	<key>XCFrameworkFormatVersion</key>
 	<string>1.0</string>
+	<key>NSCameraUsageDescription</key>
+    <string>Need camera access to scan barcodes</string>
 </dict>
 </plist>

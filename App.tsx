@@ -1,18 +1,16 @@
-// App.tsx
-import React, {useEffect, useState} from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import {createStackNavigator} from '@react-navigation/stack';
+import React, { useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import ShowcaseScreen from './screens/ShowcaseScreen';
 import WalletHome from './screens/WalletHome';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import LoadingScreen from './screens/LoadingScreen';
-import Zeroconf, {ImplType} from 'react-native-zeroconf';
-import ReactNativeBiometrics, {BiometryTypes} from 'react-native-biometrics';
+import Zeroconf, { ImplType } from 'react-native-zeroconf';
+import ReactNativeBiometrics, { BiometryTypes } from 'react-native-biometrics';
 import DeviceInfo from 'react-native-device-info';
-import {ThemeProvider} from './theme';
-import {WalletProvider} from './context/WalletContext';
-import {initializeHaptics} from './utils';
-
+import { ThemeProvider } from './theme';
+import { WalletProvider } from './context/WalletContext';
+import { initializeHaptics } from './utils';
 import {
   Alert,
   EmitterSubscription,
@@ -20,18 +18,27 @@ import {
   Platform,
 } from 'react-native';
 import WalletSettings from './screens/WalletSettings';
-import {NativeModules} from 'react-native';
-import {dbg, pinRemoteIP} from './utils';
+import { NativeModules } from 'react-native';
+import { dbg, pinRemoteIP } from './utils';
 import MobilesPairing from './screens/MobilesPairing';
-const {BBMTLibNativeModule} = NativeModules;
+import 'react-native-reanimated'
+import QRScannerComponent from './components/QrCodePhoneToWebLinkFoss';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { trpc, trpcClient } from './utils/trpc';
+import WebSocketPairing from './components/WebSocketPairing';
+import { SocketProvider } from './context/SocketContext';
+
+const { BBMTLibNativeModule } = NativeModules;
 const Stack = createStackNavigator();
-const rnBiometrics = new ReactNativeBiometrics({allowDeviceCredentials: true});
+const rnBiometrics = new ReactNativeBiometrics({ allowDeviceCredentials: true });
 const zeroconf = new Zeroconf();
 const zeroOut = new Zeroconf();
+const queryClient = new QueryClient();
 
 const App = () => {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     initializeHaptics();
@@ -59,7 +66,7 @@ const App = () => {
         'local.',
         'bold_bitcoin_wallet',
         55056,
-        {txt: 'bold_bitcoin_wallet', id: deviceID},
+        { txt: 'bold_bitcoin_wallet', id: deviceID },
         ImplType.NSD,
       );
       return () => {
@@ -153,28 +160,33 @@ const App = () => {
     };
   }, []);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+    if (!trpc || !trpcClient) {
+      console.error("[App.tsx] TRPC objects (trpc or trpcClient) are UNDEFINED before rendering Providers!");
+      // You might want to return a loading/error screen here
+      return (
+        <ThemeProvider>
+          <LoadingScreen onRetry={() => { /* maybe reload app or retry init */ }} />
+        </ThemeProvider>
+      );
+    }
 
   const authenticateUser = async () => {
     try {
-      const {available, biometryType} = await rnBiometrics.isSensorAvailable();
-
+      const { available, biometryType } = await rnBiometrics.isSensorAvailable();
       if (!available) {
         setIsAuthenticated(true);
         return;
       }
-
       if (
         available &&
         (biometryType === BiometryTypes.TouchID ||
           biometryType === BiometryTypes.FaceID ||
           biometryType === BiometryTypes.Biometrics)
       ) {
-        const {success} = await rnBiometrics.simplePrompt({
+        const { success } = await rnBiometrics.simplePrompt({
           promptMessage: 'Authenticate to access your wallet',
           fallbackPromptMessage: 'Use your device passcode to unlock',
         });
-
         if (success) {
           setIsAuthenticated(true);
         } else {
@@ -189,14 +201,13 @@ const App = () => {
                 },
               },
             ],
-            {cancelable: false},
+            { cancelable: false },
           );
         }
       } else {
-        const {success} = await rnBiometrics.simplePrompt({
+        const { success } = await rnBiometrics.simplePrompt({
           promptMessage: 'Enter your device passcode to unlock',
         });
-
         if (success) {
           setIsAuthenticated(true);
         } else {
@@ -211,7 +222,7 @@ const App = () => {
                 },
               },
             ],
-            {cancelable: false},
+            { cancelable: false },
           );
         }
       }
@@ -234,7 +245,6 @@ const App = () => {
       </ThemeProvider>
     );
   }
-
   if (!isAuthenticated) {
     dbg('Rendering LoadingScreen - not authenticated');
     return (
@@ -243,51 +253,63 @@ const App = () => {
       </ThemeProvider>
     );
   }
-
   dbg('Rendering main navigation with initialRoute:', initialRoute);
-
   return (
-    <ThemeProvider>
-      <WalletProvider>
-        <NavigationContainer>
-          <Stack.Navigator
-            initialRouteName={initialRoute}
-            screenOptions={{
-              headerShown: false,
-            }}>
-            <Stack.Screen
-              name="Bold Home"
-              component={WalletHome}
-              options={{
-                headerShown: true,
-                headerLeft: () => null,
-              }}
-            />
-            <Stack.Screen
-              name="Welcome"
-              component={ShowcaseScreen}
-              options={{
-                headerShown: true,
-              }}
-            />
-            <Stack.Screen
-              name="Settings"
-              component={WalletSettings}
-              options={{
-                headerShown: true,
-              }}
-            />
-            <Stack.Screen
-              name="📱📱 Pairing"
-              component={MobilesPairing}
-              options={{
-                headerShown: true,
-              }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </WalletProvider>
-    </ThemeProvider>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+         <SocketProvider>
+          <QueryClientProvider client={queryClient}>
+              <ThemeProvider>
+                <WalletProvider>
+                  <NavigationContainer>
+                    <Stack.Navigator
+                      initialRouteName={initialRoute}
+                      screenOptions={{
+                        headerShown: false,
+                      }}>
+                      <Stack.Screen
+                        name="Bold Home"
+                        component={WalletHome}
+                        options={{
+                          headerShown: true,
+                          headerLeft: () => null,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="Welcome"
+                        component={ShowcaseScreen}
+                        options={{
+                          headerShown: true,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="Settings"
+                        component={WalletSettings}
+                        options={{
+                          headerShown: true,
+                        }}
+                      />
+                      <Stack.Screen
+                        name="📱📱 Pairing"
+                        component={MobilesPairing}
+                        options={{
+                          headerShown: true,
+                        }}
+                      />
+                    <Stack.Screen
+                      name="Device Pairing"
+                      component={WebSocketPairing}
+                      options={{
+                        headerShown: true,
+                        title: 'Link to Web App'
+                      }}
+                    />
+                    </Stack.Navigator>
+                  </NavigationContainer>
+                </WalletProvider>
+              </ThemeProvider>
+          </QueryClientProvider>
+        </SocketProvider>
+       </trpc.Provider>
   );
 };
 
