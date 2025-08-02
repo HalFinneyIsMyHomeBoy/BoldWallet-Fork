@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 
 interface SocketContextType {
   socket: Socket | null;
-  connectSocket: (codeValue: string) => void;
+  submitPairingCode: (codeValue: string) => void;
   disconnectSocket: () => void;
   isConnected: boolean;
   pairingStatus: 'idle' | 'connecting' | 'paired' | 'failed' | 'pairingLost';
@@ -33,10 +33,6 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // The explicit TRPC mutation is no longer necessary as the backend's socket
-  // disconnect handler is sufficient.
-  // const unpairDeviceMutation = trpc.device.unpairDevice.useMutation();
-
   const clearHeartbeatInterval = () => {
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
@@ -59,7 +55,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }, 5000);
   };
 
-  const connectSocket = (codeValue: string) => {
+  const submitPairingCode = (codeValue: string) => {
     if (socketRef.current) {
       console.log('SocketContext: Cleaning up old socket before new connection.');
       clearHeartbeatInterval();
@@ -181,7 +177,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   return (
     <SocketContext.Provider value={{
       socket: socketRef.current,
-      connectSocket,
+      submitPairingCode,
       disconnectSocket,
       isConnected,
       pairingStatus,

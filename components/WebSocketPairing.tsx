@@ -32,8 +32,8 @@ export default function WebSocketPairingScreen() {
   const [code, setCode] = useState('');
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const {
-    connectSocket,
-    disconnectSocket, // <-- 1. Get the disconnect function
+    submitPairingCode,
+    disconnectSocket,
     pairingStatus,
     error: contextError,
     webSocketId: contextWebSocketId,
@@ -54,12 +54,13 @@ export default function WebSocketPairingScreen() {
       if (codes.length > 0) {
         const scannedCode = codes[0].value;
         if (scannedCode) {
-          setCode(scannedCode);
-          if (/^\d{6}$/.test(scannedCode)) {
+          const upperCaseCode = scannedCode.toUpperCase();
+          setCode(upperCaseCode);
+          if (/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(upperCaseCode)) {
             setLocalUiError('');
-            connectSocket(scannedCode);
+            submitPairingCode(upperCaseCode);
           } else {
-            setLocalUiError('Invalid QR code. Please scan a valid 6-digit code.');
+            setLocalUiError('Invalid QR code. Please scan a valid pairing code.');
           }
         }
         setIsScannerVisible(false);
@@ -79,11 +80,12 @@ export default function WebSocketPairingScreen() {
 
 
   const handleInitiatePairing = () => {
-    if (code.trim().length === 6 && /^\d+$/.test(code.trim())) {
+    const upperCaseCode = code.trim().toUpperCase();
+    if (/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(upperCaseCode)) {
       setLocalUiError('');
-      connectSocket(code.trim());
+      submitPairingCode(upperCaseCode);
     } else {
-      setLocalUiError('Please enter a valid 6-digit code.');
+      setLocalUiError('Please enter a valid pairing code in the format XXXX-YYYY.');
     }
   };
 
@@ -112,12 +114,11 @@ export default function WebSocketPairingScreen() {
           The connection will remain active in the background.
         </Text>
 
-        {/* --- 2. Add the Unpair Button --- */}
         <View style={styles.buttonContainer}>
           <Button
             title="Unpair Device"
-            onPress={disconnectSocket} // <-- Call disconnectSocket on press
-            color="#c00" // A red color for a destructive action
+            onPress={disconnectSocket}
+            color="#c00"
           />
         </View>
 
@@ -125,7 +126,6 @@ export default function WebSocketPairingScreen() {
     );
   }
 
-  // UI for 'idle', 'failed', or 'lost'
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Enter Pairing Code from Web:</Text>
@@ -133,13 +133,14 @@ export default function WebSocketPairingScreen() {
         <TextInput
           value={code}
           onChangeText={(text) => {
-              setCode(text);
+              setCode(text.toUpperCase());
               if (localUiError) setLocalUiError('');
           }}
-          placeholder="6-digit code"
-          keyboardType="numeric"
+          placeholder="XXXX-YYYY"
+          keyboardType="default"
           style={[styles.input, displayError ? styles.inputError : null]}
-          maxLength={6}
+          maxLength={9}
+          autoCapitalize="characters"
           autoFocus={true}
         />
         <TouchableOpacity
@@ -149,12 +150,13 @@ export default function WebSocketPairingScreen() {
                 BarcodeZxingScan.showQrReader(
                   (error: any, data: any) => {
                     if (!error && data) {
-                      setCode(data);
-                      if (/^\d{6}$/.test(data)) {
+                      const upperCaseData = data.toUpperCase();
+                      setCode(upperCaseData);
+                      if (/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(upperCaseData)) {
                         setLocalUiError('');
-                        connectSocket(data);
+                        submitPairingCode(upperCaseData);
                       } else {
-                        setLocalUiError('Invalid QR code. Please scan a valid 6-digit code.');
+                        setLocalUiError('Invalid QR code. Please scan a valid pairing code.');
                       }
                     }
                   },
@@ -174,7 +176,7 @@ export default function WebSocketPairingScreen() {
       <Button
         title="Pair Device"
         onPress={handleInitiatePairing}
-        disabled={code.trim().length !== 6 || pairingStatus === 'connecting' || pairingStatus === 'paired'}
+        disabled={!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code.trim().toUpperCase()) || pairingStatus === 'connecting' || pairingStatus === 'paired'}
       />
       {displayError && (
         <Text style={styles.errorText}>
@@ -200,7 +202,6 @@ export default function WebSocketPairingScreen() {
   );
 }
 
-// Optional: Add some basic styles for better layout
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -224,8 +225,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 10,
-    paddingRight: 50, // Make space for the icon
-    marginVertical: 20,
+    paddingRight: 50,
     width: 250,
     textAlign: 'center',
     fontSize: 18,
@@ -235,6 +235,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: 20,
   },
   inputError: {
     borderColor: 'red',
