@@ -30,6 +30,7 @@ import {useTheme} from '../theme';
 import {WalletService} from '../services/WalletService';
 import WalletSkeleton from '../components/WalletSkeleton';
 import {useWallet} from '../context/WalletContext';
+import {useSocket} from '../context/SocketContext';
 import CurrencySelector from '../components/CurrencySelector';
 import {createStyles} from '../components/Styles';
 import {CacheIndicator, CacheTimestamp, CacheIndicatorHandle} from '../components/CacheIndicator';
@@ -79,6 +80,35 @@ const WalletHome: React.FC<{navigation: any}> = ({navigation}) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
   const wallet = useWallet();
+  const {updateWalletData, pairingStatus} = useSocket();
+
+  useEffect(() => {
+    if (pairingStatus === 'paired') {
+      updateWalletData({
+        address,
+        network,
+        balanceBTC,
+        balanceFiat,
+        btcPrice,
+        party,
+        addressType,
+        selectedCurrency,
+        btcRate,
+      });
+    }
+  }, [
+    address,
+    network,
+    balanceBTC,
+    balanceFiat,
+    btcPrice,
+    party,
+    addressType,
+    selectedCurrency,
+    btcRate,
+    pairingStatus,
+    updateWalletData,
+  ]);
 
   const showErrorToast = useCallback((message: string) => {
     Toast.show({
