@@ -1,4 +1,4 @@
-package com.boldwallet
+package com.boldwallet  // Ensure this matches your package
 
 import android.app.Application
 import cl.json.RNSharePackage
@@ -20,12 +20,12 @@ import com.rnfs.RNFSPackage
 import com.swmansion.gesturehandler.RNGestureHandlerPackage
 
 class MainApplication : Application(), ReactApplication {
-
     override val reactNativeHost: ReactNativeHost =
         object : DefaultReactNativeHost(this) {
             override fun getPackages(): List<ReactPackage> =
                 PackageList(this).packages.apply {
                     add(BBMTLibNativePackage())
+                    add(IconChangerPackage())
                     add(RNGestureHandlerPackage())
                     add(RNDeviceInfo())
                     add(RNFSPackage())
@@ -36,9 +36,7 @@ class MainApplication : Application(), ReactApplication {
                 }
 
             override fun getJSMainModuleName(): String = "index"
-
             override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-
             override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
             override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
         }

@@ -25,5 +25,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Calculator Icon Activity -->
+        <activity-alias
+            android:name=".AlternativeIconActivity"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_calc"
+            android:roundIcon="@mipmap/ic_launcher_calc_round"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>
