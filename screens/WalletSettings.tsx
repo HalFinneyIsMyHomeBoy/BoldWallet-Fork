@@ -317,43 +317,16 @@ const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   // Load saved icon preference on component mount
   useEffect(() => {
-    console.log('[IconSwitcher] Loading icon preference...');
     const loadIconPreference = async () => {
       try {
         const savedIcon = await EncryptedStorage.getItem('app_icon_preference');
-        console.log('[IconSwitcher] Saved icon preference:', savedIcon);
-        
         if (savedIcon && (savedIcon === 'default' || savedIcon === 'alternative')) {
           setSelectedIcon(savedIcon);
-          console.log('[IconSwitcher] Set icon from storage:', savedIcon);
         } else {
-          // Also try to sync with native state via the new method
-          if (IconChanger && IconChanger.getCurrentIcon) {
-            try {
-              console.log('[IconSwitcher] Checking native icon state...');
-              const nativeIcon = await IconChanger.getCurrentIcon();
-              console.log('[IconSwitcher] Native icon state:', nativeIcon);
-              
-              if (nativeIcon && (nativeIcon === 'default' || nativeIcon === 'alternative')) {
-                setSelectedIcon(nativeIcon);
-                console.log('[IconSwitcher] Set icon from native:', nativeIcon);
-                // Save to storage for faster loading next time
-                await EncryptedStorage.setItem('app_icon_preference', nativeIcon);
-              } else {
-                setSelectedIcon('default');
-                console.log('[IconSwitcher] Set default icon (invalid native state)');
-              }
-            } catch (e) {
-              console.warn('[IconSwitcher] Could not get native icon state:', e);
-              setSelectedIcon('default');
-            }
-          } else {
-            console.log('[IconSwitcher] IconChanger not available, setting default');
-            setSelectedIcon('default');
-          }
+          setSelectedIcon('default');
         }
       } catch (error) {
-        console.warn('[IconSwitcher] Error loading icon preference:', error);
+        console.warn('Error loading icon preference:', error);
         setSelectedIcon('default');
       }
     };
@@ -1059,7 +1032,6 @@ const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
         </CollapsibleSection>
 
         {/* App Icon Section */}
-
         <CollapsibleSection
           title="App Icon"
           isExpanded={expandedSections.appIcon}
@@ -1074,86 +1046,35 @@ const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
             style={[styles.button, { marginBottom: 10, backgroundColor: theme.colors.secondary }]}
             onPress={async () => {
               try {
-                if (IconChanger && IconChanger.getCurrentIcon) {
-                  const currentIcon = await IconChanger.getCurrentIcon();
-                  const storageIcon = await EncryptedStorage.getItem('app_icon_preference');
+                if (IconChanger && IconChanger.getComponentStates) {
+                  const componentStates = await IconChanger.getComponentStates();
                   Alert.alert(
-                    'Icon Status',
-                    `System icon: ${currentIcon}\nStored preference: ${storageIcon || 'none'}\nUI state: ${selectedIcon}`,
+                    'Component States',
+                    componentStates,
                     [{ text: 'OK' }]
                   );
                 } else {
                   Alert.alert('Error', 'IconChanger module not available');
                 }
               } catch (error) {
-                Alert.alert('Error', `Failed to get icon status: ${error}`);
+                Alert.alert('Error', `Failed to get component states: ${error}`);
               }
             }}
           >
-            <Text style={[styles.buttonText, { color: theme.colors.text }]}>Check Icon Status</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, { marginBottom: 10, backgroundColor: theme.colors.primary }]}
-            onPress={async () => {
-              try {
-                Alert.alert(
-                  'Reset to Default Icon',
-                  'This will reset the app icon to the default BoldWallet icon. Continue?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Reset',
-                      onPress: async () => {
-                        try {
-                          HapticFeedback.light();
-                          console.log('[IconReset] Starting reset to default icon');
-                          
-                          if (!IconChanger || !IconChanger.resetToDefaultIcon) {
-                            Alert.alert('Error', 'Icon reset is not available on this device.');
-                            return;
-                          }
-
-                          await IconChanger.resetToDefaultIcon();
-                          setSelectedIcon('default');
-                          await EncryptedStorage.setItem('app_icon_preference', 'default');
-                          
-                          Alert.alert(
-                            'Icon Reset Complete', 
-                            'The app icon has been reset to the default BoldWallet icon.',
-                            [{ text: 'OK' }]
-                          );
-                          console.log('[IconReset] Icon reset completed successfully');
-                        } catch (error) {
-                          console.error('[IconReset] Error resetting icon:', error);
-                          Alert.alert('Error', `Failed to reset icon: ${error}`);
-                        }
-                      }
-                    }
-                  ]
-                );
-              } catch (error) {
-                Alert.alert('Error', `Failed to show reset dialog: ${error}`);
-              }
-            }}
-          >
-            <Text style={[styles.buttonText, { color: theme.colors.text }]}>Reset to Default Icon</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.text }]}>Check Component States</Text>
           </TouchableOpacity>
           <View style={styles.toggleContainer}>
-            <Text style={styles.toggleLabel}>Original</Text>
+            <Text style={styles.toggleLabel}>BoldWallet</Text>
             <Switch
               trackColor={{ true: theme.colors.primary, false: theme.colors.secondary }}
               thumbColor={theme.colors.accent}
               onValueChange={async (value) => {
                 try {
-                  console.log('[IconSwitcher] Starting icon change. Value:', value);
-                  
                   HapticFeedback.light();
                   const newIcon = value ? 'alternative' : 'default';
-                  console.log('[IconSwitcher] New icon will be:', newIcon);
-                  
+
                   // Check if IconChanger module is available
                   if (!IconChanger || !IconChanger.changeIcon) {
-                    console.error('[IconSwitcher] IconChanger module not available');
                     Alert.alert(
                       'Error',
                       'Icon switching is not available on this device.',
@@ -1162,36 +1083,29 @@ const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
                     return;
                   }
 
-                  // Optimistically update UI
+                  // Update UI state
                   setSelectedIcon(newIcon);
-                  console.log('[IconSwitcher] Set UI state to:', newIcon);
 
-                  // Save preference to encrypted storage first
+                  // Save preference
                   await EncryptedStorage.setItem('app_icon_preference', newIcon);
-                  console.log('[IconSwitcher] Saved preference to storage:', newIcon);
 
                   // Change the icon
-                  console.log('[IconSwitcher] Calling native changeIcon with:', newIcon);
                   await IconChanger.changeIcon(newIcon);
-                  console.log('[IconSwitcher] Native changeIcon completed successfully');
 
-                  // Show success message with more detailed instructions
+                  // Show success message
                   const iconName = newIcon === 'alternative' ? 'Calculator' : 'BoldWallet';
                   Alert.alert(
-                    'App Icon Changed',
-                    `The app icon has been changed to ${iconName}.\n\nNote: Some launchers may take a few minutes to update the icon, or you may need to:\n• Restart your device\n• Clear launcher cache\n• Look for the new icon in your app drawer\n\nThe change has been applied successfully at the system level.`,
+                    'Icon Changed',
+                    `App icon switched to ${iconName}.\n\nYou may need to refresh your launcher to see the change.`,
                     [{ text: 'OK' }]
                   );
-                  
-                  console.log('[IconSwitcher] Icon change completed successfully');
-                  
+
                 } catch (error: any) {
-                  console.error('[IconSwitcher] Error changing icon:', error);
-                  
+                  console.error('Error changing icon:', error);
+
                   // Revert UI state on error
                   setSelectedIcon(value ? 'default' : 'alternative');
-                  
-                  // Show error alert
+
                   Alert.alert(
                     'Error',
                     error?.message || 'Failed to change app icon. Please try again.',
@@ -1202,7 +1116,7 @@ const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
               value={selectedIcon === 'alternative'}
               disabled={selectedIcon === 'loading'}
             />
-            <Text style={styles.toggleLabel}>Secret</Text>
+            <Text style={styles.toggleLabel}>Calculator</Text>
           </View>
         </CollapsibleSection>
 

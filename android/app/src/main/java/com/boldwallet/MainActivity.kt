@@ -1,6 +1,10 @@
 package com.boldwallet
 
 import android.os.Bundle
+import android.content.ComponentName
+import android.content.pm.PackageManager
+import android.util.Log
+import android.content.SharedPreferences
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -14,7 +18,6 @@ class MainActivity : ReactActivity() {
         DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // react-native-navigation
         super.onCreate(null)
     }
 }
