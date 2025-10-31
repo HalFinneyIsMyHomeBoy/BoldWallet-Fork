@@ -1031,95 +1031,96 @@ const WalletSettings: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         </CollapsibleSection>
 
-        {/* App Icon Section */}
-        <CollapsibleSection
-          title="App Icon"
-          isExpanded={expandedSections.appIcon}
-          onToggle={() => toggleSection('appIcon')}
-          styles={styles}
-          theme={theme}
-        >
-          <Text style={styles.toggleDescription}>
-            Change the app's launcher icon on your device.
-          </Text>
-          <TouchableOpacity
-            style={[styles.button, { marginBottom: 10, backgroundColor: theme.colors.secondary }]}
-            onPress={async () => {
-              try {
-                if (IconChanger && IconChanger.getComponentStates) {
-                  const componentStates = await IconChanger.getComponentStates();
-                  Alert.alert(
-                    'Component States',
-                    componentStates,
-                    [{ text: 'OK' }]
-                  );
-                } else {
-                  Alert.alert('Error', 'IconChanger module not available');
-                }
-              } catch (error) {
-                Alert.alert('Error', `Failed to get component states: ${error}`);
-              }
-            }}
+        {/* App Icon Section - Android Only */}
+        {Platform.OS === 'android' && (
+          <CollapsibleSection
+            title="App Icon"
+            isExpanded={expandedSections.appIcon}
+            onToggle={() => toggleSection('appIcon')}
+            styles={styles}
+            theme={theme}
           >
-            <Text style={[styles.buttonText, { color: theme.colors.text }]}>Check Component States</Text>
-          </TouchableOpacity>
-          <View style={styles.toggleContainer}>
-            <Text style={styles.toggleLabel}>BoldWallet</Text>
-            <Switch
-              trackColor={{ true: theme.colors.primary, false: theme.colors.secondary }}
-              thumbColor={theme.colors.accent}
-              onValueChange={async (value) => {
+            <Text style={styles.toggleDescription}>
+              Change the app's launcher icon on your device.
+            </Text>
+            <TouchableOpacity
+              style={[styles.button, { marginBottom: 10, backgroundColor: theme.colors.secondary }]}
+              onPress={async () => {
                 try {
-                  HapticFeedback.light();
-                  const newIcon = value ? 'alternative' : 'default';
-
-                  // Check if IconChanger module is available
-                  if (!IconChanger || !IconChanger.changeIcon) {
+                  if (IconChanger && IconChanger.getComponentStates) {
+                    const componentStates = await IconChanger.getComponentStates();
                     Alert.alert(
-                      'Error',
-                      'Icon switching is not available on this device.',
+                      'Component States',
+                      componentStates,
                       [{ text: 'OK' }]
                     );
-                    return;
+                  } else {
+                    Alert.alert('Error', 'IconChanger module not available');
                   }
-
-                  // Update UI state
-                  setSelectedIcon(newIcon);
-
-                  // Save preference
-                  await EncryptedStorage.setItem('app_icon_preference', newIcon);
-
-                  // Change the icon
-                  await IconChanger.changeIcon(newIcon);
-
-                  // Show success message
-                  const iconName = newIcon === 'alternative' ? 'Calculator' : 'BoldWallet';
-                  Alert.alert(
-                    'Icon Changed',
-                    `App icon switched to ${iconName}.\n\nYou may need to refresh your launcher to see the change.`,
-                    [{ text: 'OK' }]
-                  );
-
-                } catch (error: any) {
-                  console.error('Error changing icon:', error);
-
-                  // Revert UI state on error
-                  setSelectedIcon(value ? 'default' : 'alternative');
-
-                  Alert.alert(
-                    'Error',
-                    error?.message || 'Failed to change app icon. Please try again.',
-                    [{ text: 'OK' }]
-                  );
+                } catch (error) {
+                  Alert.alert('Error', `Failed to get component states: ${error}`);
                 }
               }}
-              value={selectedIcon === 'alternative'}
-              disabled={selectedIcon === 'loading'}
-            />
-            <Text style={styles.toggleLabel}>Calculator</Text>
-          </View>
-        </CollapsibleSection>
+            >
+              <Text style={[styles.buttonText, { color: theme.colors.text }]}>Check Component States</Text>
+            </TouchableOpacity>
+            <View style={styles.toggleContainer}>
+              <Text style={styles.toggleLabel}>BoldWallet</Text>
+              <Switch
+                trackColor={{ true: theme.colors.primary, false: theme.colors.secondary }}
+                thumbColor={theme.colors.accent}
+                onValueChange={async (value) => {
+                  try {
+                    HapticFeedback.light();
+                    const newIcon = value ? 'alternative' : 'default';
 
+                    // Check if IconChanger module is available
+                    if (!IconChanger || !IconChanger.changeIcon) {
+                      Alert.alert(
+                        'Error',
+                        'Icon switching is not available on this device.',
+                        [{ text: 'OK' }]
+                      );
+                      return;
+                    }
+
+                    // Update UI state
+                    setSelectedIcon(newIcon);
+
+                    // Save preference
+                    await EncryptedStorage.setItem('app_icon_preference', newIcon);
+
+                    // Change the icon
+                    await IconChanger.changeIcon(newIcon);
+
+                    // Show success message
+                    const iconName = newIcon === 'alternative' ? 'Calculator' : 'BoldWallet';
+                    Alert.alert(
+                      'Icon Changed',
+                      `App icon switched to ${iconName}.\n\nYou may need to refresh your launcher to see the change.`,
+                      [{ text: 'OK' }]
+                    );
+
+                  } catch (error: any) {
+                    console.error('Error changing icon:', error);
+
+                    // Revert UI state on error
+                    setSelectedIcon(value ? 'default' : 'alternative');
+
+                    Alert.alert(
+                      'Error',
+                      error?.message || 'Failed to change app icon. Please try again.',
+                      [{ text: 'OK' }]
+                    );
+                  }
+                }}
+                value={selectedIcon === 'alternative'}
+                disabled={selectedIcon === 'loading'}
+              />
+              <Text style={styles.toggleLabel}>Calculator</Text>
+            </View>
+          </CollapsibleSection>
+        )}
         {/* About Section */}
         <CollapsibleSection
           title="About"
