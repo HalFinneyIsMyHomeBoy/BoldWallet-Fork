@@ -117,7 +117,6 @@ func createRumor(content string, senderPubkey string, recipientPubkey string) no
 		CreatedAt: nostr.Now(),
 		PubKey:    senderPubkey,
 		Content:   content,
-		Tags:      nostr.Tags{{"p", recipientPubkey}},
 	}
 	// Calculate event ID (unsigned)
 	rumor.ID = rumor.GetID()
